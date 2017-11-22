@@ -1,0 +1,56 @@
+<html>
+<head>
+<title>Tessellation and Twist</title>
+
+
+<script id="vertex-shader-twisk" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+uniform float theta;
+
+void
+main()
+{
+	float PI = 3.14159265358979323846264;
+	float thetaRad = PI*(theta/180.0);
+	float d = sqrt(vPosition.x*vPosition.x + vPosition.y*vPosition.y);
+	float s = sin(d*thetaRad);
+    float c = cos(d*thetaRad);
+	gl_Position.x = c * vPosition.x - s * vPosition.y;
+	gl_Position.y = s * vPosition.x + c * vPosition.y;
+	gl_Position.z = 0.0;
+	gl_Position.w = 1.0;
+}
+</script>
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+
+void
+main()
+{
+    gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
+}
+</script>
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="assig1.js"></script>
+</head>   
+
+<body>
+<div style="float: left">
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+<h1>Tessellation and Twist</h1>
+</div>
+<div style="float: left">
+<fieldset>
+<legend>Shape</legend>
+Angle [0-180]<br/> 
+<input id="sliderTheta" type="range" min="0" max="180" step="30" value="0" /><br/>
+Recursive steps [0-5]<br/>
+<input id="slider" type="range" min="0" max="5" step="1" value="0" /><br/>
+</fieldset>
+</div>
+</body>
+</html>

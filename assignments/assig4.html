@@ -1,0 +1,177 @@
+<html>
+<head>
+<title>Lighting</title>
+<script id="vertex-shader" type="x-shader/x-vertex">
+
+attribute  vec4 vPosition;
+attribute  vec3 vNormal;
+
+varying vec4 fColor;
+
+uniform vec3 translation;
+uniform vec3 theta;
+uniform vec3 scaling;
+uniform vec4 materialAmbient;
+uniform vec4 materialDiffuse;
+uniform vec4 materialSpecular;
+uniform float materialShininess;
+
+uniform vec4 lightAmbient[2];
+uniform vec4  lightDiffuse[2], lightSpecular[2];
+uniform vec4 lightPosition[2];
+
+void main()
+{
+    // Compute the sines and cosines of theta for each of
+    //   the three axes in one computation.
+    vec3 angles = radians( theta );
+    vec3 c = cos( angles );
+    vec3 s = sin( angles );
+
+	// Remeber: thse matrices are column-major
+    mat4 t = mat4( 	1.0,  0.0,  0.0, 0.0,
+					0.0,  1.0,  0.0, 0.0,
+					0.0,  0.0,  1.0, 0.0,
+					translation.x,  translation.y, translation.z, 1.0 );
+	
+	mat4 rx = mat4( 1.0,  0.0,  0.0, 0.0,
+					0.0,  c.x,  s.x, 0.0,
+					0.0, -s.x,  c.x, 0.0,
+					0.0,  0.0,  0.0, 1.0 );
+
+    mat4 ry = mat4( c.y, 0.0, -s.y, 0.0,
+					0.0, 1.0,  0.0, 0.0,
+					s.y, 0.0,  c.y, 0.0,
+					0.0, 0.0,  0.0, 1.0 );
+
+
+    mat4 rz = mat4( c.z, s.z, 0.0, 0.0,
+					-s.z,  c.z, 0.0, 0.0,
+					0.0,  0.0, 1.0, 0.0,
+					0.0,  0.0, 0.0, 1.0 );
+
+	mat4 sc = mat4( scaling.x,  0.0,  0.0, 0.0,
+					0.0,  scaling.y,  0.0, 0.0,
+					0.0,  0.0,  scaling.z, 0.0,
+					0.0,  0.0,  0.0, 1.0 );
+	
+	mat4 modelViewMatrix = t * rz * ry * rx * sc;
+	
+    gl_Position = modelViewMatrix * vPosition;
+	
+	//light
+	vec3 pos = -(modelViewMatrix * vPosition).xyz; //pq o menos("-")?
+        
+        //fixed light postion
+	fColor = vec4(0.0,0.0,0.0,1.0);
+	for(int i=0; i<2; i++){
+	
+            vec3 lightPos = lightPosition[i].xyz;
+            
+            vec3 ll = lightPos - pos;
+            
+            vec3 L = normalize( ll );
+            vec3 V = normalize( -pos ); 
+            vec3 H = normalize( L + V );
+            
+            
+            // Transform vertex normal into eye coordinates
+            vec4 nn = vec4(vNormal,0);
+            vec3 N = normalize( (modelViewMatrix*nn).xyz );
+
+            // Compute terms in the illumination equation
+
+            vec4 ambient = materialAmbient*lightAmbient[i];
+
+            float Kd = max( dot(L, N), 0.0 );
+            vec4  diffuse = Kd*materialDiffuse*lightDiffuse[i];
+
+            float Ks = pow( max(dot(N, H), 0.0), materialShininess );
+            vec4  specular = Ks*materialSpecular*lightSpecular[i];
+            
+            if( dot(L, N) < 0.0 ) { // pk?
+                    specular = vec4(0.0, 0.0, 0.0, 1.0);
+            } 
+
+            float d = sqrt(ll.x*ll.x+ll.y*ll.y+ll.z*ll.z);
+            fColor += ambient + (diffuse + specular)/d;
+	}
+	//clamp(fColor, vec4(0.25, 0.25, 0.25, 1.0), vec4(1.0, 1.0, 1.0, 1.0));
+    fColor.a = 1.0;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+varying vec4 fColor;
+
+void
+main()
+{
+    gl_FragColor = fColor;
+}
+</script>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="assig4.js"></script>
+</head>
+<body>
+<div id="draw" style="float: left">
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+<br/>
+<p id="renderDbg">...</p>
+<h1>Lighting</h1>
+</div>
+<div id="menu" style="float: left; width: 310px">
+<fieldset>
+<legend>Shape</legend>
+<select id="shape" style="width: 100px"></select>
+<button id= "deleteShape">Delete</button>
+<p/>
+<button id= "newSphere">New Sphere</button>
+<button id= "newCilinder">New Cilinder</button>
+<button id= "newCone">New Cone</button>
+<p id="shapeDbg">...</p>
+
+
+Translate x: <input id="translateX" type="number" min="-5" max="5" step="0.1" value="0"/><br/>
+Translate y: <input id="translateY" type="number" min="-5" max="5" step="0.1" value="0"/><br/>
+Translate z: <input id="translateZ" type="number" min="-5" max="5" step="0.1" value="0"/>
+<p id="translateDbg">...</p>
+Rotate x: <input id="rotateX" type="number" min="-180" max="180" step="5" value="0"/><br/>
+Rotate y: <input id="rotateY" type="number" min="-180" max="180" step="5" value="0"/><br/>
+Rotate z: <input id="rotateZ" type="number" min="-180" max="180" step="5" value="0"/>
+<p id="rotateDbg">...</p>
+Scale x: <input id="scaleX" type="number" min="0.1" max="2" step="0.1" value="1.0"/><br/>
+Scale y: <input id="scaleY" type="number" min="0.1" max="2" step="0.1" value="1.0"/><br/>
+Scale z: <input id="scaleZ" type="number" min="0.1" max="2" step="0.1" value="1.0"/>
+<p id="scaleDbg">...</p>
+Color R: <input id="colorR" type="number" min="0.0" max="1.0" step="0.05" value="0.0"/><br/>
+Color G: <input id="colorG" type="number" min="0.0" max="1.0" step="0.05" value="0.0"/><br/>
+Color B: <input id="colorB" type="number" min="0.0" max="1.0" step="0.05" value="0.0"/>
+<p id="colorDbg">...</p>
+</fieldset>
+</div>
+
+<div id="lights" style="float: left">
+<fieldset>
+<legend>Lights</legend>
+Light 0:<br/>
+<button id= "toggleLight0">Toggle</button>
+<button id= "increaseDistanceLight0">Move Further</button>
+<button id= "decreaseDistanceLight0">Move Closer</button>
+<p id="light0Dbg">...</p>
+Light 1:<br/>
+<button id= "toggleLight1">Toggle</button>
+<button id= "increaseDistanceLight1">Move Further</button>
+<button id= "decreaseDistanceLight1">Move Closer</button>
+<p id="light1Dbg">...</p>
+</fieldset>
+</div>
+</body>
+</html>

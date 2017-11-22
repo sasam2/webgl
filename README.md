@@ -1,6 +1,7 @@
 # webgl
 
 webgl assignments developed for coursera course. Each assignment illustrates a computer graphics concept.
+Files in Common folder are provided by: https://www.cs.unm.edu/~angel/WebGL/7E/.
 
 #Tesselation
 
